@@ -21,9 +21,19 @@ const dom = new JSDOM(html, {
   resources: "usable"
 });
 
-//Handle fetch
+// Set up fetch in JSDOM window using Node's native fetch
+dom.window.fetch = global.fetch;
+
+//Handle whatwg-fetch as fallback
 const fetchPkg = 'node_modules/whatwg-fetch/dist/fetch.umd.js';
-dom.window.eval(fs.readFileSync(fetchPkg, 'utf-8'));
+try {
+  dom.window.eval(fs.readFileSync(fetchPkg, 'utf-8'));
+} catch (e) {
+  // Ignore if whatwg-fetch fails, use Node's fetch
+}
+
+// Ensure fetch is Node's implementation (for actually making HTTP requests)
+dom.window.fetch = global.fetch;
 
 // Inject the transformed JavaScript into the virtual DOM
 const scriptElement = dom.window.document.createElement("script");
@@ -38,17 +48,18 @@ global.HTMLElement = dom.window.HTMLElement;
 global.Node = dom.window.Node;
 global.Text = dom.window.Text;
 global.XMLHttpRequest = dom.window.XMLHttpRequest;
+global.fetch = dom.window.fetch;
 
 // Sample test suite for JavaScript event handling
 describe('Asynchronous Fetching ', () => {
   it('should fetch to external api and add information to page', async() => {
-    await new Promise(resolve => setTimeout(resolve, 200)); 
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
     let postDisplay = document.querySelector("#post-list")
     expect(postDisplay.innerHTML).to.include('sunt aut')
     
   })
   it('should create an h1 and p element to add', async() => {
-    await new Promise(resolve => setTimeout(resolve, 200)); 
+    await new Promise(resolve => setTimeout(resolve, 1000)); 
     let h1 = document.querySelector("h1")
     let p = document.querySelector("p")
     expect(h1.textContent).to.include("sunt aut facere repellat")
